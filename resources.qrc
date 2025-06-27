@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/data">
+        <file>data/document-open-symbolic.svg</file>
+    </qresource>
+</RCC>
