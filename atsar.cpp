@@ -36,7 +36,6 @@ void atsar::on_pushButton_3_clicked()
     QString fileName = QFileDialog::getOpenFileName(this, "Open the file", "YAML Files (*.yaml *.yml);;All Files (*)");
     if (!fileName.isEmpty())
     {
-        qDebug() << "Selected YAML file: " << fileName;
         atsarquiz* quizWindow = new atsarquiz();
         quizWindow->setAttribute(Qt::WA_DeleteOnClose);
         quizWindow->show();

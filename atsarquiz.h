@@ -15,6 +15,9 @@ public:
     explicit atsarquiz(QWidget *parent = nullptr);
     ~atsarquiz();
 
+private slots:
+    void on_Quit_triggered();
+
 private:
     Ui::atsarquiz *ui;
 };
