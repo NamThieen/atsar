@@ -1,0 +1,190 @@
+# Workflow name displayed in GitHub Actions UI
+name: Build Qt App (CMake + Pre-built Rust Lib) on Windows
+
+# Triggers for this workflow
+on:
+  push:
+    branches:
+      - main
+      - github-actions # Keep this branch if you use it for actions development
+    tags:
+      - 'v*' # Trigger for releases based on tags
+  pull_request:
+    branches:
+      - main
+
+# Define a single job for building the application
+jobs:
+  build-windows:
+    name: Build Windows (MSVC) Qt ${{ matrix.qt_version }}
+    runs-on: windows-2022 # Specifically use a Windows runner for MSVC builds
+    strategy:
+      fail-fast: false
+      matrix:
+        # Define the single configuration for Windows MSVC
+        config:
+          - name: "Windows MSVC"
+            build_dir: "windows-msvc" # Output directory for this specific build
+            os: windows-2022
+            cc: "cl" # C compiler for MSVC
+            cxx: "cl" # C++ compiler for MSVC
+        # Use a specific, known stable Qt version that works with aqtinstall v4.1.1
+        qt_version:
+          - "6.9.1" # Using 6.7.0 as a safe, widely available version.
+                    # If 6.9.1 works for you with jurplel/install-qt-action@v4.1.1, you can change this back.
+
+        # Explicitly define generators and build type (consistent with your working example)
+        include:
+          - generators: "Ninja" # Or "Visual Studio 17 2022" for typical VS projects
+          - build_type: "Release"
+
+    steps:
+      # Step 1: Checkout the source code from the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Get CMake (as in your working example)
+      - name: Get CMake
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~3.31.0" # Match the CMake version from your working example
+
+      # Step 3: Install Qt for Windows
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4.1.1 # Use the version from your working example
+        with:
+          version: ${{ matrix.qt_version }}
+          arch: win64_msvc2019_64bit # Standard MSVC 64-bit architecture for Qt 6
+          # modules: "qt5compat" # Include this if your project specifically uses Qt5Compat
+          cache: true # Enable caching for faster subsequent runs
+
+      # Step 4: Setup MSVC environment (Crucial for MSVC builds)
+      - name: Setup MSVC (Windows)
+        # This action ensures the Visual Studio development environment variables are set
+        uses: ilammy/msvc-dev-cmd@v1
+
+      # Step 5: Configure the project with CMake
+      - name: Configure
+        working-directory: ${{ github.workspace }}
+        id: runcmake
+        run: |
+          echo "Configuring Qt project with CMake..."
+          # -B: Binary directory (where build files are generated)
+          # -G: Generator (e.g., "Visual Studio 17 2022" or "Ninja")
+          # -DCMAKE_PREFIX_PATH: Tells CMake where to find Qt installation
+          # -DCMAKE_BUILD_TYPE: Set to Release for a release build
+          # -DCMAKE_C_COMPILER and -DCMAKE_CXX_COMPILER: Explicitly set for MSVC based on matrix
+          cmake -B "build/${{ matrix.config.build_dir }}" -G "${{ matrix.generators }}" -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" -DCMAKE_C_COMPILER=${{ matrix.config.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_PREFIX_PATH="${{ env.QT_INSTALL_DIR }}\${{ matrix.qt_version }}\msvc2019_64"
+          echo "CMake configuration complete."
+
+      # Step 6: Build the project using CMake
+      - name: Build
+        working-directory: ${{ github.workspace }}
+        id: runcmakebuild
+        run: |
+          echo "Building Qt project with CMake..."
+          # --build .: Build the current CMake project
+          # --config Release: Specify Release configuration for multi-config generators
+          # --parallel: Build in parallel (useful for faster compilation)
+          cmake --build "build/${{ matrix.config.build_dir }}" --config Release --parallel --verbose
+          echo "Qt project built."
+
+      # Step 7: Install the built application
+      - name: Install
+        working-directory: ${{ github.workspace }}
+        id: runcmakeinstall
+        run: |
+          echo "Installing Qt application..."
+          # --install: Install the build artifacts
+          # --prefix: Specify the installation root directory
+          cmake --install "build/${{ matrix.config.build_dir }}" --prefix="dist/${{ matrix.config.build_dir }}/usr"
+          echo "Qt application installed."
+
+      # Step 8: Copy the pre-built Rust shared library
+      - name: Copy Rust DLL
+        run: |
+          echo "Copying pre-built Rust DLL..."
+          # Copy the pre-built Rust DLL into the installed binary directory
+          # The executable 'atsar.exe' will be in dist/windows-msvc/usr/bin/
+          Copy-Item -Path "atsar-rust-lib\atsa_questions.dll" -Destination "dist/${{ matrix.config.build_dir }}/usr/bin\" -Force
+          echo "Rust DLL copied."
+
+      # Step 9: Copy data directory if needed (as per your tree structure)
+      - name: Copy Data Directory
+        run: |
+          echo "Copying data directory..."
+          # If your 'atsar.exe' needs files from the 'data' directory at runtime, copy them
+          Copy-Item -Path "data" -Destination "dist/${{ matrix.config.build_dir }}/usr\" -Recurse -Force
+          echo "Data directory copied."
+
+      # Step 10: Run windeployqt to bundle necessary Qt DLLs and plugins
+      - name: Deploy Qt application with windeployqt
+        run: |
+          echo "Running windeployqt..."
+          # windeployqt should target the executable in its installed location
+          # Specify relevant options to minimize bundle size if desired
+          "${{ env.QT_INSTALL_DIR }}\${{ matrix.qt_version }}\msvc2019_64\bin\windeployqt.exe" "dist/${{ matrix.config.build_dir }}/usr/bin/atsar.exe" --release --no-translations --no-system-d3d-compiler --no-opengl-sw
+          echo "windeployqt finished."
+
+      # Step 11: Set version tag or commit SHA for artifact naming
+      - name: Set version tag or commit SHA
+        id: version
+        run: |
+          # Use tag name if available, otherwise use a short commit SHA
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $version = $env:GITHUB_REF.Substring($env:GITHUB_REF.LastIndexOf('/') + 1)
+          } else {
+            $version = $env:GITHUB_SHA.Substring(0, 7)
+          }
+          echo "version=$version" >> $env:GITHUB_ENV
+        shell: pwsh # Use PowerShell for Windows commands
+
+      # Step 12: Create Windows setup using Inno Setup
+      # This step requires a 'setup_script.iss' file in your repository root.
+      - name: Create setup (Windows)
+        if: matrix.config.os == 'windows-2022' && matrix.config.cc == 'cl'
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.4
+        with:
+          path: "setup_script.iss" # Path to your Inno Setup script
+          options: "/O+" # /O+ option to overwrite existing output file
+
+      # Step 13: Rename and upload the setup executable
+      - name: Rename and upload setup (Windows)
+        if: matrix.config.os == 'windows-2022' && matrix.config.cc == 'cl'
+        run: |
+          # The Inno Setup action typically outputs the setup exe into the 'dist' directory
+          # Rename it to include Qt version and commit SHA/tag for clarity
+          Copy-Item "dist\qtedit4-win64.exe" "dist\atsar-qt${{ matrix.qt_version }}-${{ env.version }}-x86_64.exe" -Force
+        shell: pwsh # Use PowerShell for Windows commands
+
+      # Step 14: Upload the renamed setup executable as an artifact
+      - name: Upload renamed setup (Windows)
+        if: matrix.config.os == 'windows-2022' && matrix.config.cc == 'cl'
+        uses: actions/upload-artifact@v4
+        with:
+          name: atsar-qt${{ matrix.qt_version }}-${{ env.version }}-x86_64.exe
+          path: dist/atsar-qt${{ matrix.qt_version }}-${{ env.version }}-x86_64.exe
+
+  # The create-release job will automatically pick up artifacts uploaded by build-windows
+  create-release:
+    name : Draft GitHub Release
+    needs : build-windows # This job now depends on 'build-windows'
+    runs-on : ubuntu-latest
+    env :
+      GITHUB_TOKEN : ${{ secrets.GITHUB_TOKEN }}
+    if : github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps :
+      - uses : actions/checkout@v4
+      - name : Download all artifacts
+        uses : actions/download-artifact@v4
+        with :
+          merge-multiple : true
+          path : ./artifacts
+      - name : Create Draft Release
+        run : |
+          # Use 'gh' CLI to create a draft release
+          gh release create ${{ github.ref_name }} --title ${{ github.ref_name }} --generate-notes --draft
+      - name : Upload assets to release
+        run : |
+          # Upload all downloaded artifacts to the created release
+          gh release upload ${{ github.ref_name }} ./artifacts/*
