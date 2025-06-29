@@ -42,7 +42,7 @@ jobs:
           mkdir build # Create a build directory
           cd build    # Change into the build directory
           # Run qmake on your project file. Replace 'your_project_name.pro' with your actual .pro file name.
-          qmake ../your_project_name.pro
+          qmake ../atsar.pro
 
       # Step 4: Build the project using make.
       # The -j$(nproc) flag tells make to use all available CPU cores for faster compilation.
