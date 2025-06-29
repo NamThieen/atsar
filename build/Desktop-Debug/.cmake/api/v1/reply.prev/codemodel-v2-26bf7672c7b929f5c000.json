@@ -1,0 +1,79 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-3c5862a718f8e068a8e1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "atsar",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "atsar::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-atsar-Debug-e4ad2837883f29043c21.json",
+					"name" : "atsar",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "atsar_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-atsar_autogen-Debug-70b4d7a87056e8703cd9.json",
+					"name" : "atsar_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "atsar_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-atsar_autogen_timestamp_deps-Debug-5e0b60229a276e8dbfec.json",
+					"name" : "atsar_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/nam/Projects/atsar/build/Desktop-Debug",
+		"source" : "/home/nam/Projects/atsar"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

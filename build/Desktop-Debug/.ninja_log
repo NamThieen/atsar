@@ -1,0 +1,10 @@
+# ninja log v6
+222	13864	1751116096478469800	CMakeFiles/atsar.dir/atsarquiz.cpp.o	ccc124183d8f2f3
+54	217	1751116096309690053	atsar_autogen/timestamp	4fb7295ff786f478
+218	346	1751116096474709089	CMakeFiles/atsar.dir/main.cpp.o	589acf25f6e12791
+222	309	1751116096477690045	CMakeFiles/atsar.dir/atsar.cpp.o	e28cf3b4ec3b8cd2
+54	217	1751116096309690053	atsar_autogen/mocs_compilation.cpp	4fb7295ff786f478
+218	345	1751116096473690045	CMakeFiles/atsar.dir/atsar_autogen/mocs_compilation.cpp.o	80c3706204809c2c
+54	217	1751116096309690053	/home/nam/Projects/atsar/build/Desktop-Debug/atsar_autogen/timestamp	4fb7295ff786f478
+54	217	1751116096309690053	/home/nam/Projects/atsar/build/Desktop-Debug/atsar_autogen/mocs_compilation.cpp	4fb7295ff786f478
+13864	15384	1751116110119689437	atsar	a2dad3ac22707b92
