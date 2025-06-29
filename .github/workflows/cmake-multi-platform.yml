@@ -28,7 +28,9 @@ jobs:
       - name: Install Qt for Windows
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.9.1 # Specify the desired Qt version (e.g., '6.6.2', '6.x' for latest 6)
+          version: 6.7.0 # Explicitly specify a known stable Qt 6 version (e.g., 6.7.0).
+                         # Changed from '6.x' to avoid potential issues with 'aqtinstall'
+                         # trying to resolve to non-existent future versions or cached incorrect ones.
           arch: win64_msvc2019_64bit # Or win64_mingw if you use MinGW on Windows
           # modules: 'qtbase qtdeclarative' # Uncomment and add specific Qt modules if your app uses them beyond base Qt Widgets
 
