@@ -1,5 +1,5 @@
 # Workflow name displayed in GitHub Actions UI
-name: Build Qt App (CMake + Pre-built Rust Lib) on Linux
+name: Build Qt App (CMake + Pre-built Rust Lib) on Windows
 
 # Triggers for this workflow
 on:
@@ -14,8 +14,8 @@ on:
 # Define a single job named 'build'
 jobs:
   build:
-    # Specify the runner environment. Ubuntu is a common choice for Linux builds.
-    runs-on: ubuntu-latest
+    # Specify the runner environment for Windows
+    runs-on: windows-latest
 
     # Steps involved in the job
     steps:
@@ -23,73 +23,82 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Removed: Step 2: Install Rust toolchain (since library is pre-built)
-      # Removed: Step 3: Build the Rust shared library (since library is pre-built)
-
-      # Step 2 (formerly Step 4): Install Qt. We use a dedicated action for this.
-      # This action automatically handles downloading and setting up Qt environment variables.
-      - name: Install Qt
+      # Step 2: Install Qt for Windows.
+      # Specify the desired Qt version and architecture (MSVC is common on Windows).
+      - name: Install Qt for Windows
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.9 # Specify the desired Qt version (e.g., '6.6.2', '6.x' for latest 6)
+          version: 6.x # Specify the desired Qt version (e.g., '6.6.2', '6.x' for latest 6)
+          arch: win64_msvc2019_64bit # Or win64_mingw if you use MinGW on Windows
           # modules: 'qtbase qtdeclarative' # Uncomment and add specific Qt modules if your app uses them beyond base Qt Widgets
 
-      # Step 3 (formerly Step 5): Configure the project with CMake.
+      # Step 3: Configure the project with CMake.
       # Create a dedicated build directory for the GitHub Actions build.
       - name: Configure with CMake
         run: |
           echo "Configuring Qt project with CMake..."
-          mkdir build_github # Create a build directory specifically for CI
-          cd build_github    # Change into the build directory
+          # Use cmd.exe or PowerShell commands for Windows
+          mkdir build_github
+          cd build_github
           # Run CMake:
           # .. points to the source directory (repository root)
           # -DCMAKE_PREFIX_PATH is crucial for CMake to find the Qt installation.
           #   ${{ env.QT_INSTALL_DIR }} and ${{ env.QT_VERSION }} are set by install-qt-action.
-          #   gcc_64 is the standard compiler target for Ubuntu.
+          #   msvc2019_64 is the standard compiler target for Windows MSVC.
           # -DCMAKE_BUILD_TYPE=Release ensures a release build.
-          cmake .. -DCMAKE_PREFIX_PATH=${{ env.QT_INSTALL_DIR }}/${{ env.QT_VERSION }}/gcc_64 -DCMAKE_BUILD_TYPE=Release
+          # Optionally specify a generator, though CMake often picks a suitable one for the environment.
+          cmake .. -DCMAKE_PREFIX_PATH="${{ env.QT_INSTALL_DIR }}/${{ env.QT_VERSION }}/msvc2019_64" -DCMAKE_BUILD_TYPE=Release
           echo "CMake configuration complete."
 
-      # Step 4 (formerly Step 6): Build the project using CMake.
+      # Step 4: Build the project using CMake.
       - name: Build with CMake
         run: |
           echo "Building Qt project with CMake..."
-          cd build_github # Navigate into the build directory
+          cd build_github
           # Use cmake --build . to build the project.
-          # --config Release is generally good practice for multi-config generators (though 'make' is single-config).
-          # -j$(nproc) uses all available CPU cores for faster compilation.
-          cmake --build . --config Release -j$(nproc)
+          # --config Release is important for Visual Studio generators.
+          # -j is not directly used with MSVC; CMake handles parallel builds.
+          cmake --build . --config Release
           echo "Qt project built."
 
-      # Step 5 (formerly Step 7): Create an artifact bundle for the executable and shared library
+      # Step 5: Run windeployqt to bundle necessary Qt DLLs and plugins.
+      - name: Deploy Qt application with windeployqt
+        run: |
+          echo "Running windeployqt..."
+          # Change to the directory where the executable is built
+          cd build_github
+          # Run windeployqt on your executable. It will copy required Qt DLLs and plugins.
+          # The executable name should match your project (atsar.exe).
+          # The windeployqt tool should be in PATH due to install-qt-action.
+          windeployqt atsar.exe
+          echo "windeployqt finished."
+
+      # Step 6: Create an artifact bundle for the executable and shared library
       # This step ensures both the Qt app and its required Rust library are packaged together.
       - name: Create artifact bundle
         run: |
           echo "Creating artifact bundle..."
           # Create a temporary staging directory to collect all necessary files
-          mkdir staging_artifact
-          # Copy the main executable (your app, named 'atsar' from the tree)
-          cp build_github/atsar staging_artifact/
-          # Copy the pre-built Rust shared library, which is essential for your app to run
-          # Updated path: now directly from atsar-rust-lib/ as it's pre-built
-          cp atsar-rust-lib/libatsa_questions.so staging_artifact/
+          # Use PowerShell commands for Windows
+          New-Item -ItemType Directory -Force staging_artifact
+          # Copy the main executable (your app, named 'atsar.exe') and all its dependencies bundled by windeployqt
+          Copy-Item -Path "build_github\*" -Destination "staging_artifact\" -Recurse -Force
+          # Copy the pre-built Rust shared library (atsa_questions.dll for Windows)
+          # Make sure your Rust library is compiled for Windows (.dll) and named correctly in your repo.
+          Copy-Item -Path "atsar-rust-lib\atsa_questions.dll" -Destination "staging_artifact\" -Force
 
           # --- Optional: If your app needs other assets or Qt plugins ---
           # Based on your tree, you have a 'data' directory.
-          # If 'atsar' needs this 'data' directory to run, uncomment and copy it:
-          # cp -r data staging_artifact/data
-          # If your app relies on Qt plugins (like platform themes, image formats, etc.)
-          # and you want it to be standalone without a system-wide Qt install,
-          # you would typically use 'linuxdeployqt' here. This is more advanced.
-          # For now, we assume the target system has necessary Qt runtime components.
+          # If 'atsar' needs this 'data' directory to run, copy it:
+          Copy-Item -Path "data" -Destination "staging_artifact\" -Recurse -Force
 
-          echo "Artifact bundle created in 'staging_artifact/'."
+          echo "Artifact bundle created in 'staging_artifact\'."
 
-      # Step 6 (formerly Step 8): Upload the compiled application and its shared library as an artifact.
+      # Step 7: Upload the compiled application and its shared library as an artifact.
       # This makes the runnable package available for download from the GitHub Actions run.
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: atsar-app-linux # A descriptive name for the downloadable artifact
+          name: atsar-app-windows # A descriptive name for the downloadable artifact
           path: staging_artifact/ # Upload the entire staging directory
           # retain-days: 7 # Optional: How long to keep the artifact
