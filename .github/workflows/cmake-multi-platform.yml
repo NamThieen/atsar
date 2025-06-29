@@ -1,0 +1,72 @@
+# Workflow name displayed in GitHub Actions UI
+name: Build Qt Window App on Linux
+
+# Triggers for this workflow
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the 'main' branch
+  pull_request:
+    branches:
+      - main # Trigger on pull requests targeting the 'main' branch
+  workflow_dispatch: # Allows manual triggering from the GitHub Actions UI
+
+# Define a single job named 'build'
+jobs:
+  build:
+    # Specify the runner environment. Ubuntu is a common choice for Linux builds.
+    runs-on: ubuntu-latest
+
+    # Steps involved in the job
+    steps:
+      # Step 1: Checkout the source code from the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Install Qt. We use a dedicated action for this, which simplifies setup.
+      # This action automatically handles downloading and setting up Qt environment variables.
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: 6.x # Specify the desired Qt version (e.g., '5.15.2', '6.6.2', '6.x' for latest 6)
+          # modules: 'qtbase qtdeclarative' # Uncomment and add specific Qt modules if needed, e.g., for QML
+          # Specify where Qt should be installed. Default is fine for most cases.
+          # The action adds Qt to PATH and sets up QT_INSTALL_DIR.
+          # arch: 'linux_64' # Optional: specify architecture if needed, default is usually correct.
+
+      # Step 3: Configure the project using qmake.
+      # Qt Creator projects typically generate a .pro file which qmake uses.
+      # Create a build directory and run qmake from within it to keep source clean.
+      - name: Configure with qmake
+        run: |
+          mkdir build # Create a build directory
+          cd build    # Change into the build directory
+          # Run qmake on your project file. Replace 'your_project_name.pro' with your actual .pro file name.
+          qmake ../your_project_name.pro
+
+      # Step 4: Build the project using make.
+      # The -j$(nproc) flag tells make to use all available CPU cores for faster compilation.
+      - name: Build
+        run: |
+          cd build # Navigate back into the build directory
+          make -j$(nproc)
+
+      # Step 5 (Optional): Run tests if your project has them.
+      # - name: Run tests
+      #   run: |
+      #     cd build
+      #     make check # Or whatever command your project uses for tests
+
+      # Step 6: Upload the compiled application as an artifact.
+      # This makes the built executable available for download from the GitHub Actions run.
+      # Adjust the 'path' to where your executable is generated.
+      # Typically, it's within the 'build' directory, often directly or in 'release/' or 'debug/'.
+      # For a simple Qt Widgets app named 'your_project_name', it's often 'build/your_project_name'.
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-app-linux # Name of the artifact
+          path: build/atsar # IMPORTANT: Adjust this path to your actual executable name
+
+          # Path example if your executable is in a 'release' or 'debug' subfolder:
+          # path: build/release/your_project_name # or build/debug/your_project_name
