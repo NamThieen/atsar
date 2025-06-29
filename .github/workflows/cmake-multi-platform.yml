@@ -1,5 +1,5 @@
 # Workflow name displayed in GitHub Actions UI
-name: Build Qt Window App on Linux
+name: Build Qt App (CMake + Pre-built Rust Lib) on Linux
 
 # Triggers for this workflow
 on:
@@ -23,50 +23,73 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Install Qt. We use a dedicated action for this, which simplifies setup.
+      # Removed: Step 2: Install Rust toolchain (since library is pre-built)
+      # Removed: Step 3: Build the Rust shared library (since library is pre-built)
+
+      # Step 2 (formerly Step 4): Install Qt. We use a dedicated action for this.
       # This action automatically handles downloading and setting up Qt environment variables.
       - name: Install Qt
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.x # Specify the desired Qt version (e.g., '5.15.2', '6.6.2', '6.x' for latest 6)
-          # modules: 'qtbase qtdeclarative' # Uncomment and add specific Qt modules if needed, e.g., for QML
-          # Specify where Qt should be installed. Default is fine for most cases.
-          # The action adds Qt to PATH and sets up QT_INSTALL_DIR.
-          # arch: 'linux_64' # Optional: specify architecture if needed, default is usually correct.
+          version: 6.9 # Specify the desired Qt version (e.g., '6.6.2', '6.x' for latest 6)
+          # modules: 'qtbase qtdeclarative' # Uncomment and add specific Qt modules if your app uses them beyond base Qt Widgets
 
-      # Step 3: Configure the project using qmake.
-      # Qt Creator projects typically generate a .pro file which qmake uses.
-      # Create a build directory and run qmake from within it to keep source clean.
-      - name: Configure with qmake
+      # Step 3 (formerly Step 5): Configure the project with CMake.
+      # Create a dedicated build directory for the GitHub Actions build.
+      - name: Configure with CMake
         run: |
-          mkdir build # Create a build directory
-          cd build    # Change into the build directory
-          # Run qmake on your project file. Replace 'your_project_name.pro' with your actual .pro file name.
-          qmake ../atsar.pro
+          echo "Configuring Qt project with CMake..."
+          mkdir build_github # Create a build directory specifically for CI
+          cd build_github    # Change into the build directory
+          # Run CMake:
+          # .. points to the source directory (repository root)
+          # -DCMAKE_PREFIX_PATH is crucial for CMake to find the Qt installation.
+          #   ${{ env.QT_INSTALL_DIR }} and ${{ env.QT_VERSION }} are set by install-qt-action.
+          #   gcc_64 is the standard compiler target for Ubuntu.
+          # -DCMAKE_BUILD_TYPE=Release ensures a release build.
+          cmake .. -DCMAKE_PREFIX_PATH=${{ env.QT_INSTALL_DIR }}/${{ env.QT_VERSION }}/gcc_64 -DCMAKE_BUILD_TYPE=Release
+          echo "CMake configuration complete."
 
-      # Step 4: Build the project using make.
-      # The -j$(nproc) flag tells make to use all available CPU cores for faster compilation.
-      - name: Build
+      # Step 4 (formerly Step 6): Build the project using CMake.
+      - name: Build with CMake
         run: |
-          cd build # Navigate back into the build directory
-          make -j$(nproc)
+          echo "Building Qt project with CMake..."
+          cd build_github # Navigate into the build directory
+          # Use cmake --build . to build the project.
+          # --config Release is generally good practice for multi-config generators (though 'make' is single-config).
+          # -j$(nproc) uses all available CPU cores for faster compilation.
+          cmake --build . --config Release -j$(nproc)
+          echo "Qt project built."
 
-      # Step 5 (Optional): Run tests if your project has them.
-      # - name: Run tests
-      #   run: |
-      #     cd build
-      #     make check # Or whatever command your project uses for tests
+      # Step 5 (formerly Step 7): Create an artifact bundle for the executable and shared library
+      # This step ensures both the Qt app and its required Rust library are packaged together.
+      - name: Create artifact bundle
+        run: |
+          echo "Creating artifact bundle..."
+          # Create a temporary staging directory to collect all necessary files
+          mkdir staging_artifact
+          # Copy the main executable (your app, named 'atsar' from the tree)
+          cp build_github/atsar staging_artifact/
+          # Copy the pre-built Rust shared library, which is essential for your app to run
+          # Updated path: now directly from atsar-rust-lib/ as it's pre-built
+          cp atsar-rust-lib/libatsa_questions.so staging_artifact/
 
-      # Step 6: Upload the compiled application as an artifact.
-      # This makes the built executable available for download from the GitHub Actions run.
-      # Adjust the 'path' to where your executable is generated.
-      # Typically, it's within the 'build' directory, often directly or in 'release/' or 'debug/'.
-      # For a simple Qt Widgets app named 'your_project_name', it's often 'build/your_project_name'.
+          # --- Optional: If your app needs other assets or Qt plugins ---
+          # Based on your tree, you have a 'data' directory.
+          # If 'atsar' needs this 'data' directory to run, uncomment and copy it:
+          # cp -r data staging_artifact/data
+          # If your app relies on Qt plugins (like platform themes, image formats, etc.)
+          # and you want it to be standalone without a system-wide Qt install,
+          # you would typically use 'linuxdeployqt' here. This is more advanced.
+          # For now, we assume the target system has necessary Qt runtime components.
+
+          echo "Artifact bundle created in 'staging_artifact/'."
+
+      # Step 6 (formerly Step 8): Upload the compiled application and its shared library as an artifact.
+      # This makes the runnable package available for download from the GitHub Actions run.
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qt-app-linux # Name of the artifact
-          path: build/atsar # IMPORTANT: Adjust this path to your actual executable name
-
-          # Path example if your executable is in a 'release' or 'debug' subfolder:
-          # path: build/release/your_project_name # or build/debug/your_project_name
+          name: atsar-app-linux # A descriptive name for the downloadable artifact
+          path: staging_artifact/ # Upload the entire staging directory
+          # retain-days: 7 # Optional: How long to keep the artifact
