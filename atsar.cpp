@@ -33,13 +33,9 @@ void atsar::on_pushButton_2_clicked()
 
 void atsar::on_pushButton_3_clicked()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, "Open the file", "YAML Files (*.yaml *.yml);;All Files (*)");
-    if (!fileName.isEmpty())
-    {
-        atsarquiz* quizWindow = new atsarquiz();
-        quizWindow->setAttribute(Qt::WA_DeleteOnClose);
-        quizWindow->show();
-        this->close();
-    }
+    atsarquiz* quizWindow = new atsarquiz();
+    quizWindow->setAttribute(Qt::WA_DeleteOnClose);
+    quizWindow->show();
+    this->close();
 }
 

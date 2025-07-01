@@ -1,8 +1,7 @@
 #ifndef ATSAR_H
 #define ATSAR_H
-
+#include <QMessageBox>
 #include <QMainWindow>
-#include <QFileDialog>
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class atsar;

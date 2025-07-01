@@ -87,7 +87,7 @@
         <item>
          <widget class="QStackedWidget" name="questionType">
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="page_Multichoices">
            <layout class="QVBoxLayout" name="verticalLayout">
@@ -106,7 +106,7 @@
                </size>
               </property>
               <property name="text">
-               <string>PushButton</string>
+               <string/>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">buttonGroup</string>
@@ -128,7 +128,7 @@
                </size>
               </property>
               <property name="text">
-               <string>PushButton</string>
+               <string/>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">buttonGroup</string>
@@ -150,7 +150,7 @@
                </size>
               </property>
               <property name="text">
-               <string>PushButton</string>
+               <string/>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">buttonGroup</string>
@@ -172,7 +172,7 @@
                </size>
               </property>
               <property name="text">
-               <string>PushButton</string>
+               <string/>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">buttonGroup</string>
@@ -224,7 +224,13 @@
       <item>
        <layout class="QHBoxLayout" name="navigation">
         <item>
-         <widget class="QLabel" name="Status">
+         <widget class="QLabel" name="Progress">
+          <property name="maximumSize">
+           <size>
+            <width>16777214</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="text">
            <string/>
           </property>
@@ -269,7 +275,7 @@
      <x>0</x>
      <y>0</y>
      <width>1000</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuQuiz">
