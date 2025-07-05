@@ -3,7 +3,11 @@
         <file>data/document-open-symbolic.svg</file>
     </qresource>
     <qresource prefix="/atsar-rust-lib">
-        <file>atsar-rust-lib/libatsa_questions.so</file>
         <file>atsar-rust-lib/src/rust_questions_api.h</file>
+        <file>atsar-rust-lib/atsa_questions.d</file>
+        <file>atsar-rust-lib/atsa_questions.dll</file>
+        <file>atsar-rust-lib/atsa_questions.dll.exp</file>
+        <file>atsar-rust-lib/atsa_questions.dll.lib</file>
+        <file>atsar-rust-lib/atsa_questions.pdb</file>
     </qresource>
 </RCC>

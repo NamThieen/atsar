@@ -21,7 +21,7 @@ target_include_directories(atsar
         ${RUST_INCLUDE_DIR}
 )
 find_library(ATSA_QUESTIONS_LIB
-             NAMES atsa_questions # Base name of the library (lib will be prepended automatically)
+             NAMES atsa_questions.dll # Base name of the library (lib will be prepended automatically)
              PATHS ${RUST_LIB_DIR} # Search in the specified build output directory
              NO_DEFAULT_PATH # Only search in the specified paths, not system default paths
             )
